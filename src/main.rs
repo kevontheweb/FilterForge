@@ -1,15 +1,18 @@
 use std::{env, f64::consts::PI, io};
 
+extern crate rand;
+use rand::Rng;
+
 // from 'designing gain and offset in thirty seconds' - Application Report SLOA097 (Texas Instruments)
 fn main() {
     let args: Vec<String> = env::args().collect();
     // println!("{:?}", args);
     match args.len() {
         3 => {
-        let cutoff_frequency = args[1].parse::<f64>().unwrap();
+        let fc = args[1].parse::<f64>().unwrap();
         let order = args[2].parse::<u8>().unwrap();
         let q = AntiAliasingFilter::q_factors(order);
-        let filter = AntiAliasingFilter::component_values(q, cutoff_frequency, order);
+        let filter = AntiAliasingFilter::component_values(q, fc, order);
         println!("\nfilter values:\n{:?}", filter);
         },
         6 =>{
@@ -160,7 +163,7 @@ impl AmplifierCircuit {
 #[derive(Debug)]
 enum AntiAliasingFilter {
     Butterworth {
-        cutoff_frequency: f64,
+        fc: f64,
         order: u8,
         r2: f64,
         c2: f64,
@@ -190,22 +193,74 @@ impl AntiAliasingFilter {
         };
         q
     }
-    fn component_values(q: Vec<f64>, cutoff_frequency: f64, order: u8) -> Vec<AntiAliasingFilter> {
+    fn component_values(q: Vec<f64>, fc: f64, order: u8) -> Vec<AntiAliasingFilter> {
         // cutoff freq in hz
         // choose c (1nf)
         let mut filters: Vec<AntiAliasingFilter> = Vec::new();
         for q in q.iter() {
-            let c = get_user_input("select c1 (1nF is typically a good starting choice)");
-            let n = 4.0 * q.powf(2.0);
-            let m = ((1.0 * (n.powf(2.0) - (4.0 * n * q.powf(2.0))).powf(1.0 / 2.0)) + n
-                - (2.0 * q.powf(2.0)))
-                / (2.0 * q.powf(2.0));
-            let c1 = n * c;
-            let c2 = c;
-            let r2 = 1.0 / ((m * n).powf(1.0 / 2.0) * c2 * 2.0 * PI * cutoff_frequency);
+
+            /*
+            /* full formulas */
+            k = 1.0f64;
+            fc = 1.0f64/(2.0f64*PI*(r1*r2*c1*c2).powf(2.0f64));
+            q = (r2*r2*c1*c2).powf(0.5f64) / (r1*c1 + r2*c1 + r1*c2*(1.0f64-k));
+            /* equivalent component unity gain krc circuit */
+            let k=1, r1=m*r, r2 = r, c1 = c, c2 = n*c
+            therfore:
+            fsf * fc = 1.0f64 / (2.0f64*PI*r*c*(m*n).pow(0.5f64))
+            q = (m*n).pow(0.5f64)/(m+1)
+            */
+
+
+            // choose n and calculate m
+            // let n = 6.0f64 + (4.0 * q.powf(2.0));
+            // let m = ((1.0f64 * (n.powf(2.0f64) - (4.0f64 * n * q.powf(2.0f64))).powf(1.0f64 / 2.0f64)) + n
+                // - (2.0f64 * q.powf(2.0f64)))
+                // / (2.0f64 * q.powf(2.0f64));
+                
+           // choose m and calculate n
+           /*
+           // let m = 1.0f64;
+           // let n = q.powf(2.0f64) * (m.powf(2.0f64) + 2.0f64*m + 1.0f64) / m;
+            
+           let n = 6.0f64 + (4.0 * q.powf(2.0));
+           let k = (n / 2.0f64*q.powf(2.0f64)) - 1.0f64;
+           let m = k + (k.powf(2.0f64) - 1.0f64).powf(0.5f64);
+           println!("m: {}\nn: {}\nk: {}\nq: {}",m,n,k,q);
+
+            // let c1 = 20e-9f64;
+            // let c2 = 1e-9f64;
+            let mut c2;
+            let c1 = get_user_input("select c1 (20nF is typically a good starting choice)");
+            loop {
+                c2 = get_user_input("select c2 (c1/c2 must be > 4q^2)");
+                if &c1 / &c2 < n {
+                    println!(
+                        "ratio is {}, it should be greater than or equal to {}", (c1 / c2), n);
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            let r2 = 1.0f64 / ((m * n).powf(1.0f64 / 2.0f64) * c2 * 2.0f64 * PI * fc);
             let r1 = m * r2;
+            */
+
+            // equal caps and resistors as a ratio aproximation
+            let c = get_user_input("select c1 (20nF is typically a good starting choice)");
+            let _k =1.0f64;
+            let _fsf =1.0f64; 
+            let m =( (2.0f64 * q.powf(2.0f64)) - (1.0f64 - 4.0f64*q.powf(2.0f64)) + 1.0f64)/(2.0f64*q.powf(2.0f64)).abs();
+
+            let r = fc*2.0f64*PI*m.powf(0.5f64)*c;
+            let r1=m*r;
+            let r2 = r;
+            let c1 = c;
+            let c2 = c;
+
+
             let filter = AntiAliasingFilter::Butterworth {
-                cutoff_frequency,
+                fc,
                 order,
                 r2,
                 c2,
