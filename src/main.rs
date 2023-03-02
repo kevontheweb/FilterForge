@@ -198,34 +198,17 @@ impl AntiAliasingFilter {
         // choose c (1nf)
         let mut filters: Vec<AntiAliasingFilter> = Vec::new();
         for q in q.iter() {
-
-            /*
-            /* full formulas */
-            k = 1.0f64;
-            fc = 1.0f64/(2.0f64*PI*(r1*r2*c1*c2).powf(2.0f64));
-            q = (r2*r2*c1*c2).powf(0.5f64) / (r1*c1 + r2*c1 + r1*c2*(1.0f64-k));
-            /* equivalent component unity gain krc circuit */
-            let k=1, r1=m*r, r2 = r, c1 = c, c2 = n*c
-            therfore:
-            fsf * fc = 1.0f64 / (2.0f64*PI*r*c*(m*n).pow(0.5f64))
-            q = (m*n).pow(0.5f64)/(m+1)
-            */
-
-
             // choose n and calculate m
-            // let n = 6.0f64 + (4.0 * q.powf(2.0));
-            // let m = ((1.0f64 * (n.powf(2.0f64) - (4.0f64 * n * q.powf(2.0f64))).powf(1.0f64 / 2.0f64)) + n
-                // - (2.0f64 * q.powf(2.0f64)))
-                // / (2.0f64 * q.powf(2.0f64));
+            let k=1.0f64;
+            let n = 6.0f64 + (4.0 * q.powf(2.0));
+            let m = ((1.0f64 * (n.powf(2.0f64) - (4.0f64 * n * q.powf(2.0f64))).powf(1.0f64 / 2.0f64)) + n
+                 - (2.0f64 * q.powf(2.0f64)))
+                 / (2.0f64 * q.powf(2.0f64));
                 
            // choose m and calculate n
-           /*
            // let m = 1.0f64;
            // let n = q.powf(2.0f64) * (m.powf(2.0f64) + 2.0f64*m + 1.0f64) / m;
             
-           let n = 6.0f64 + (4.0 * q.powf(2.0));
-           let k = (n / 2.0f64*q.powf(2.0f64)) - 1.0f64;
-           let m = k + (k.powf(2.0f64) - 1.0f64).powf(0.5f64);
            println!("m: {}\nn: {}\nk: {}\nq: {}",m,n,k,q);
 
             // let c1 = 20e-9f64;
@@ -244,20 +227,6 @@ impl AntiAliasingFilter {
             }
             let r2 = 1.0f64 / ((m * n).powf(1.0f64 / 2.0f64) * c2 * 2.0f64 * PI * fc);
             let r1 = m * r2;
-            */
-
-            // equal caps and resistors as a ratio aproximation
-            let c = get_user_input("select c1 (20nF is typically a good starting choice)");
-            let _k =1.0f64;
-            let _fsf =1.0f64; 
-            let m =( (2.0f64 * q.powf(2.0f64)) - (1.0f64 - 4.0f64*q.powf(2.0f64)) + 1.0f64)/(2.0f64*q.powf(2.0f64)).abs();
-
-            let r = fc*2.0f64*PI*m.powf(0.5f64)*c;
-            let r1=m*r;
-            let r2 = r;
-            let c1 = c;
-            let c2 = c;
-
 
             let filter = AntiAliasingFilter::Butterworth {
                 fc,
