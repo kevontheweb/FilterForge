@@ -1,9 +1,16 @@
 use std::{env, f64::consts::PI, io};
 
-extern crate rand;
-use rand::Rng;
-
 // from 'designing gain and offset in thirty seconds' - Application Report SLOA097 (Texas Instruments)
+const STD_R_VALS: [f64; 25] = [
+    10.0, 15.0, 22.0, 33.0, 47.0, 68.0, 100.0, 150.0, 220.0, 330.0, 470.0, 680.0, 1000.0, 1500.0,
+    2200.0, 3300.0, 4700.0, 6800.0, 10000.0, 15000.0, 22000.0, 33000.0, 47000.0, 68000.0, 100000.0,
+];
+const STD_C_VALS: [f64; 25] = [
+    1e-12, 1.5e-12, 2.2e-12, 3.3e-12, 4.7e-12, 6.8e-12, 10e-12, 15e-12, 22e-12, 33e-12, 47e-12,
+    68e-12, 100e-12, 150e-12, 220e-12, 330e-12, 470e-12, 680e-12, 1e-9, 1.5e-9, 2.2e-9, 3.3e-9,
+    4.7e-9, 6.8e-9, 10e-9,
+];
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     // println!("{:?}", args);
@@ -80,7 +87,6 @@ enum AmplifierCircuit {
         r_2: f64, // same order of magnitude as rf
         r_1: f64, // same order of magnitude as rf
     },
-
     TopologyD {
         // section 6
         // negative gain and negative offset
@@ -169,6 +175,7 @@ enum AntiAliasingFilter {
         c2: f64,
         r1: f64,
         c1: f64,
+        q: f64,
     },
 }
 
@@ -177,18 +184,10 @@ impl AntiAliasingFilter {
     fn q_factors(order: u8) -> Vec<f64> {
         let mut q: Vec<f64> = Vec::new();
         match order {
-            2 => {
-                q = vec![1.0];
-            }
-            4 => {
-                q = vec![0.541, 1.306];
-            }
-            6 => {
-                q = vec![0.518, 0.707, 1.932];
-            }
-            8 => {
-                q = vec![0.51, 0.601, 0.9, 2.563];
-            }
+            2 => q = vec![0.707],
+            4 => q = vec![0.541, 1.306],
+            6 => q = vec![0.518, 0.707, 1.932],
+            8 => q = vec![0.51, 0.601, 0.9, 2.563],
             _ => panic!("order must be 2, 4, 6, or 8"),
         };
         q
@@ -198,35 +197,164 @@ impl AntiAliasingFilter {
         // choose c (1nf)
         let mut filters: Vec<AntiAliasingFilter> = Vec::new();
         for q in q.iter() {
-            // choose n and calculate m
-            let k=1.0f64;
-            let n = 6.0f64 + (4.0 * q.powf(2.0));
-            let m = ((1.0f64 * (n.powf(2.0f64) - (4.0f64 * n * q.powf(2.0f64))).powf(1.0f64 / 2.0f64)) + n
-                 - (2.0f64 * q.powf(2.0f64)))
-                 / (2.0f64 * q.powf(2.0f64));
-                
-           // choose m and calculate n
-           // let m = 1.0f64;
-           // let n = q.powf(2.0f64) * (m.powf(2.0f64) + 2.0f64*m + 1.0f64) / m;
-            
-           println!("m: {}\nn: {}\nk: {}\nq: {}",m,n,k,q);
+            // GIVES NaNs for some stuff
+            // ==========================================
+            // sergio franco
+            // ==========================================
+            let c = 1e-9;
+            let c = get_user_input("select c1 (20nF is typically a good starting choice)");
 
-            // let c1 = 20e-9f64;
-            // let c2 = 1e-9f64;
-            let mut c2;
-            let c1 = get_user_input("select c1 (20nF is typically a good starting choice)");
+            // inputs
+            let m = 1f64; // q is maximised
+
+            // calculations
+            let mut n = (4.0f64 * q * q).round();
+            let mut k = n / (2.0 * q * q) - 1.0;
+            while k <= 1.0 {
+                n += 0.1;
+                k = n / (2.0 * q * q) - 1.0;
+            }
+
+            let m = k + (k * k - 1.0).sqrt();
+            let c1 = n * c;
+            let c2 = c;
+            let r = 1.0 / ((m * n).sqrt() * 2.0 * PI * c * fc);
+            let r1 = m * r;
+            let r2 = r;
+            // WORKS WITH HACK
+            // ==========================================
+            // choose c's equal
+            // ==========================================
+            /*
+            let n = 1.0 + (4.0 * q.powf(2.0));
+            // let mut m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
+            //     / (2.0 * q.powf(2.0));
+            let mut m = (-((n * n) - (4.0 * n * q * q)).sqrt() + n - (2.0 * q * q)) / (2.0 * q * q);
+
+            let n_factor = n;
+            let mut c1 = get_user_input("select c1 (20nF is typically a good starting choice)");
+            let mut c2 = get_user_input("select c2 (c1/c2 must be > 4q^2)");
             loop {
-                c2 = get_user_input("select c2 (c1/c2 must be > 4q^2)");
-                if &c1 / &c2 < n {
+                // m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
+                //     / (2.0 * q.powf(2.0));
+                //     / (2 * q.powi(2));
+
+                if c1 / c2 <= n_factor && c2 / c1 <= n_factor {
                     println!(
-                        "ratio is {}, it should be greater than or equal to {}", (c1 / c2), n);
+                        "ratio is {}, it should be greater than or equal to {}",
+                        (c1 / c2),
+                        n
+                    );
+                    c1 = get_user_input("choose c1 again");
+                    c2 = get_user_input("select c2 again");
                     continue;
                 } else {
                     break;
                 }
             }
-            let r2 = 1.0f64 / ((m * n).powf(1.0f64 / 2.0f64) * c2 * 2.0f64 * PI * fc);
+
+            m = (-((n * n) - (4.0 * n * q * q)).sqrt() + n - (2.0 * q * q)) / (2.0 * q * q);
+            let hack = 10.0 / q;
+            let r2 = 1.0 / ((m * n).powf(0.5) * c2 * 2.0 * PI * hack * fc);
             let r1 = m * r2;
+            */
+            // BROKEN
+            // ==========================================
+            // A.1.2. filter components as ratios, gain as 1
+            // ==========================================
+
+            // choose m calc n
+            /*
+            let mut choice = String::new();
+            println!("choose m or choose n?");
+            io::stdin()
+                .read_line(&mut choice)
+                .expect("Failed to read line");
+            let mut m = 0f64;
+            let mut n = 0f64;
+            match choice.trim() {
+                "m" => {
+                    m = get_user_input("choose m");
+                    n = (q * (m + 1f64)).powf(2f64) / m;
+                }
+                "n" => {
+                    n = get_user_input("choose n");
+                    m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
+                        / (2.0 * q.powf(2.0));
+                }
+                _ => panic!("choose m or choose n"),
+            }
+            */
+            /*
+            let mut m = get_user_input("choose m");
+            let mut n = 0f64;
+            let mut c = 0f64;
+            let mut r = 0f64;
+            let mut r1 = 0f64;
+            let mut r2 = 0f64;
+            let mut c1 = 0f64;
+            let mut c2 = 0f64;
+            loop {
+                n = q.powf(2f64) * (m + 1f64).powf(2f64) / m;
+                // choose n calc m
+                c = get_user_input("choose c");
+                r = 1.0f64 / (2f64 * PI * c * (m * n).powf(2.0f64));
+                r1 = m * r;
+                r2 = r;
+                c1 = c;
+                c2 = n * c;
+
+                if r2 > 500e3
+                    || r2 < 100f64
+                    || r1 > 500e3
+                    || r1 < 100f64
+                    || c1 < 10e-12
+                    || c1 > 100e-6
+                    || c2 < 10e-12
+                    || c2 > 100e-6
+                {
+                    println!(
+                        "values out of range: r1,r2,c1,c2,n,q={:?}",
+                        (r1, r2, c1, c2, n, q)
+                    );
+                    m = get_user_input("choose m such that n>4*q^2");
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            */
+
+            // BROKEN
+            // ==========================================
+            // A.1.3. resistors as ratios and caps =
+            // ==========================================
+            /*
+            let m = (-2.0 * q * q - (1.0 - 4.0 * q * q).sqrt() + 1.0) / (2.0 * q * q);
+            let k = 1f64;
+            // choose n calc m
+            let c = get_user_input("choose c");
+            let r = 1.0f64 / (2f64 * PI * c * fc * m.powf(0.5f64));
+            let r1 = m * r;
+            let r2 = r;
+            let c1 = c;
+            let c2 = c;
+            */
+
+            // BROKEN
+            // ==========================================
+            // A.1.4. equal components
+            // ==========================================
+            /*
+            let c = get_user_input("select c1 (20nF is typically a good starting choice)");
+            let r = fc / (c * 2f64 * PI);
+            let k = (3f64 * q - 1f64) / q;
+            println!("the gain is {k}, attenutaion or amplification is necessary");
+            let r1 = r;
+            let r2 = r;
+            let c1 = c;
+            let c2 = c;
+            */
 
             let filter = AntiAliasingFilter::Butterworth {
                 fc,
@@ -235,6 +363,7 @@ impl AntiAliasingFilter {
                 c2,
                 r1,
                 c1,
+                q: *q,
             };
             filters.push(filter);
         }
@@ -252,4 +381,32 @@ fn get_user_input(name: &str) -> f64 {
 
     let value: f64 = value.trim().parse().expect("Please type a number!");
     value
+}
+fn convert_to_standard_values(components: &[f64], standard_vals: &[f64]) -> Vec<f64> {
+    components
+        .iter()
+        .map(|&c| {
+            let (val, _) = standard_vals
+                .iter()
+                .enumerate()
+                .min_by_key(|&(_, &x)| ((c - x).abs() * 1e12) as i32)
+                .unwrap();
+            standard_vals[val]
+        })
+        .collect()
+}
+fn check_components(components: &[f64], standard_vals: &[f64]) {
+    for &c in components {
+        let mut closest_val = f64::INFINITY;
+        for &std_val in standard_vals {
+            let delta = (c - std_val).abs();
+            if delta < closest_val {
+                closest_val = delta;
+            }
+        }
+        if closest_val > 1e-12 {
+            println!("Error: {} component is not a standard value", c);
+            return;
+        }
+    }
 }
