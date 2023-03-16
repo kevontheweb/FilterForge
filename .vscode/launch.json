@@ -9,7 +9,10 @@
             "request": "launch",
             "name": "Launch",
             "program": "${workspaceFolder}/target/debug/circuit_calculator",
-            "args": [],
+            "args": [
+                "20e3",
+                "2"
+            ],
             "cwd": "${workspaceFolder}"
         }
     ]

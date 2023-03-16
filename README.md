@@ -6,4 +6,10 @@ I just wanted to play with rust, it was quite fun to make this and I tried to ha
 
 I also think I used enums incorrectly and should move the different circuit topologies out to separate structs then have logic for determining which struct is constructed elsewhere. but it functions as it is.
 
-I still need to test it in a SPICE simulation, so it is for now untested.
+## todo
+
+- [ ] refactor and move aa filter and scaling circuits out to separate libs
+- [ ] better cli interface with a proper help message
+- [ ] standard component suggestions
+- [ ] spice netlist output
+
