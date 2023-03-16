@@ -61,14 +61,6 @@ enum AmplifierCircuit {
         vref_prime: f64,
         r_1: f64,
     },
-    TopologyBEnhanced {
-        // figure 3
-        r_f: f64, // selected
-        r_g: f64,
-        vref_prime: f64,
-        r_1: f64, // selected
-        r_2: f64,
-    },
     TopologyC {
         // section 5
         // negative gain and positive offset
@@ -120,25 +112,6 @@ impl AmplifierCircuit {
                     r_1,
                 }
             }
-            /*
-            (false, true) => {
-                let r_f = AmplifierCircuit::get_user_input(
-                    "select r_f:\nselect r_f:\n(this may have been suggested by datasheet)",
-                );
-                let r_g = r_f / (gain - 1.0);
-                let vref_prime = offset.abs() / gain;
-                let r_1 = AmplifierCircuit::get_user_input("select r_1:");
-                let r_2 = (vref_prime * r_1) / (vref - vref_prime);
-
-                AmplifierCircuit::TopologyBEnhanced {
-                    r_f,
-                    r_g,
-                    vref_prime,
-                    r_1,
-                    r_2,
-                }
-            }
-            */
             (true, false) => {
                 let r_f = get_user_input(
                     "select r_f:\nselect r_f:\n(this may have been suggested by datasheet)",
@@ -160,6 +133,7 @@ impl AmplifierCircuit {
 
 #[derive(Debug)]
 enum AntiAliasingFilter {
+    // this is an enum so that chebyschev and others can be added. q and fc scaling factors will need to be moved out to properties of the topology, right now it is hardcoded in
     Butterworth {
         fc: f64,
         order: u8,
@@ -184,6 +158,7 @@ impl AntiAliasingFilter {
         };
         q
     }
+
     fn component_values(q: Vec<f64>, fc: f64, order: u8) -> Vec<AntiAliasingFilter> {
         // cutoff freq in hz
         // choose c (1nf)
@@ -192,11 +167,11 @@ impl AntiAliasingFilter {
             // ==========================================
             // sergio franco
             // ==========================================
-            let c = 1e-9;
+            let _c = 1e-9;
             let c = get_user_input("select c1 (20nF is typically a good starting choice)");
 
             // inputs
-            let m = 1f64; // q is maximised
+            let _m = 1f64; // q is maximised
 
             // calculations
             let mut n = (4.0f64 * q * q).round();
@@ -212,142 +187,8 @@ impl AntiAliasingFilter {
             let r = 1.0 / ((m * n).sqrt() * 2.0 * PI * c * fc);
             let r1 = m * r;
             let r2 = r;
-            // WORKS WITH HACK
-            // ==========================================
-            // choose c's equal
-            // ==========================================
-            /*
-            let n = 1.0 + (4.0 * q.powf(2.0));
-            // let mut m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
-            //     / (2.0 * q.powf(2.0));
-            let mut m = (-((n * n) - (4.0 * n * q * q)).sqrt() + n - (2.0 * q * q)) / (2.0 * q * q);
 
-            let n_factor = n;
-            let mut c1 = get_user_input("select c1 (20nF is typically a good starting choice)");
-            let mut c2 = get_user_input("select c2 (c1/c2 must be > 4q^2)");
-            loop {
-                // m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
-                //     / (2.0 * q.powf(2.0));
-                //     / (2 * q.powi(2));
-
-                if c1 / c2 <= n_factor && c2 / c1 <= n_factor {
-                    println!(
-                        "ratio is {}, it should be greater than or equal to {}",
-                        (c1 / c2),
-                        n
-                    );
-                    c1 = get_user_input("choose c1 again");
-                    c2 = get_user_input("select c2 again");
-                    continue;
-                } else {
-                    break;
-                }
-            }
-
-            m = (-((n * n) - (4.0 * n * q * q)).sqrt() + n - (2.0 * q * q)) / (2.0 * q * q);
-            let hack = 10.0 / q;
-            let r2 = 1.0 / ((m * n).powf(0.5) * c2 * 2.0 * PI * hack * fc);
-            let r1 = m * r2;
-            */
-            // BROKEN
-            // ==========================================
-            // A.1.2. filter components as ratios, gain as 1
-            // ==========================================
-
-            // choose m calc n
-            /*
-            let mut choice = String::new();
-            println!("choose m or choose n?");
-            io::stdin()
-                .read_line(&mut choice)
-                .expect("Failed to read line");
-            let mut m = 0f64;
-            let mut n = 0f64;
-            match choice.trim() {
-                "m" => {
-                    m = get_user_input("choose m");
-                    n = (q * (m + 1f64)).powf(2f64) / m;
-                }
-                "n" => {
-                    n = get_user_input("choose n");
-                    m = -((n.powf(2.0) - 4.0 * n * q.powf(2.0)).sqrt() - n + 2.0 * q.powf(2.0))
-                        / (2.0 * q.powf(2.0));
-                }
-                _ => panic!("choose m or choose n"),
-            }
-            */
-            /*
-            let mut m = get_user_input("choose m");
-            let mut n = 0f64;
-            let mut c = 0f64;
-            let mut r = 0f64;
-            let mut r1 = 0f64;
-            let mut r2 = 0f64;
-            let mut c1 = 0f64;
-            let mut c2 = 0f64;
-            loop {
-                n = q.powf(2f64) * (m + 1f64).powf(2f64) / m;
-                // choose n calc m
-                c = get_user_input("choose c");
-                r = 1.0f64 / (2f64 * PI * c * (m * n).powf(2.0f64));
-                r1 = m * r;
-                r2 = r;
-                c1 = c;
-                c2 = n * c;
-
-                if r2 > 500e3
-                    || r2 < 100f64
-                    || r1 > 500e3
-                    || r1 < 100f64
-                    || c1 < 10e-12
-                    || c1 > 100e-6
-                    || c2 < 10e-12
-                    || c2 > 100e-6
-                {
-                    println!(
-                        "values out of range: r1,r2,c1,c2,n,q={:?}",
-                        (r1, r2, c1, c2, n, q)
-                    );
-                    m = get_user_input("choose m such that n>4*q^2");
-                    continue;
-                } else {
-                    break;
-                }
-            }
-            */
-
-            // BROKEN
-            // ==========================================
-            // A.1.3. resistors as ratios and caps =
-            // ==========================================
-            /*
-            let m = (-2.0 * q * q - (1.0 - 4.0 * q * q).sqrt() + 1.0) / (2.0 * q * q);
-            let k = 1f64;
-            // choose n calc m
-            let c = get_user_input("choose c");
-            let r = 1.0f64 / (2f64 * PI * c * fc * m.powf(0.5f64));
-            let r1 = m * r;
-            let r2 = r;
-            let c1 = c;
-            let c2 = c;
-            */
-
-            // BROKEN
-            // ==========================================
-            // A.1.4. equal components
-            // ==========================================
-            /*
-            let c = get_user_input("select c1 (20nF is typically a good starting choice)");
-            let r = fc / (c * 2f64 * PI);
-            let k = (3f64 * q - 1f64) / q;
-            println!("the gain is {k}, attenutaion or amplification is necessary");
-            let r1 = r;
-            let r2 = r;
-            let c1 = c;
-            let c2 = c;
-            */
-
-            println!("in {:?}", (r1, r2, c1, c2, n, q));
+            println!("ideal {:?}", (r1, r2, c1, c2, n, q));
             let r2 = get_closest_value(r2, 'r', 5);
             let r1 = get_closest_value(r1, 'r', 5);
             let c2 = get_closest_value(c2, 'c', 5);
@@ -410,6 +251,7 @@ const E96_C: [f64; 96] = [
 
 fn get_closest_value(value: f64, component_type: char, tolerance: u8) -> f64 {
     let range: &[f64];
+    // std ranges should be different for caps and resistors
     match component_type {
         'r' => {
             range = match tolerance {
@@ -435,6 +277,7 @@ fn get_closest_value(value: f64, component_type: char, tolerance: u8) -> f64 {
     let mut order_of_magnitude = value.log10().floor() as i32;
     let mut scaled_value = value / 10_f64.powi(order_of_magnitude);
 
+    // account for values out of bounds
     if scaled_value < range[0] {
         scaled_value *= 10_f64;
         order_of_magnitude += 1;
@@ -443,6 +286,7 @@ fn get_closest_value(value: f64, component_type: char, tolerance: u8) -> f64 {
         order_of_magnitude -= 1;
     }
 
+    // choose closest value
     let mut closest = range[0];
     let mut min_diff = (scaled_value - closest).abs();
 
