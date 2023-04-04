@@ -23,13 +23,11 @@ That is mostly an issue about writing idiomatic (or 'rusty') rust code, which ho
   - [ ] make generic spice netlist for the amplifier topologies
   - [ ] make generic spice netlist for the filter topologies
 - [ ] better cli interface
-  - [ ] remove interactivity and require flags.
-    > this may not be possible since the user inputs depend on which topology is chosen.
-    > I also don't want to make the user figure out which topology they should use.
-  - [ ] flags
-    - [ ] `--lpf` with options for `butterworth` and `chebyshev`
-      - [ ] `--order` required if `--lpf` is passed
-    - [ ] `--amp` (default behaviour)
+  - [x] commands
+    - [x] `filter` (takes in cutoff frequency and order)
+      - [ ] `--butterworth`, `--chebychev`
+      - [ ] `--std` for standard component out (currently does this by default)
+    - [x] `amp` (takes in voltages, reference, output full scale, output zero scale, input full scale, input zero scale)
+      - [ ] `--std` for standard component out (currently does not do this by default)
     - [ ] `--spice` (output netlist to stdout, with simulation directives, maybe suggest ngspice command to plot freq response)
-    - [ ] `--std` for standard component out
     - [ ] `--help`
