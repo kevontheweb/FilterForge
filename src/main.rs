@@ -3,43 +3,74 @@ pub mod amp;
 pub mod utils;
 use crate::aa_filter::AntiAliasingFilter;
 use crate::amp::AmplifierCircuit;
-use std::env;
-// from 'designing gain and offset in thirty seconds' - Application Report SLOA097 (Texas Instruments)
+use clap::{Args, Parser, Subcommand};
+
+/// program for calculating scaling and offset circuits and low pass filters
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// select type of circuit to calculate
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+enum Commands {
+    /// for designing a scaling and offset circuit using the Texas Instruments 'designing gain and offset in thirty seconds' - Application Report SLOA097
+    Amp(AmpArgs),
+    /// for designing low pass filters (butterworth) using sergio franco's Design With Operational Amplifiers And Analog Integrated Circuits
+    Filter(FilterArgs),
+}
+
+#[derive(Debug, Args)]
+struct AmpArgs {
+    /// reference voltage
+    vref: f64,
+    /// output full scale voltage
+    vo_fs: f64,
+    /// output zero scale voltage
+    vo_zs: f64,
+    /// input full scale voltage
+    vi_fs: f64,
+    /// input zero scale voltage
+    vi_zs: f64,
+}
+
+#[derive(Debug, Args)]
+struct FilterArgs {
+    /// cutoff frequency
+    fc: f64,
+    /// order of the filter (2, 4, 6, or 8)
+    order: u8,
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    // println!("{:?}", args);
-    match args.len() {
-        3 => {
-        let fc = args[1].parse::<f64>().unwrap();
-        let order = args[2].parse::<u8>().unwrap();
-        let q = AntiAliasingFilter::q_factors(order);
-        let filter = AntiAliasingFilter::component_values(q, fc, order);
-        println!("\nfilter values:\n{:?}", filter);
-        },
-        6 =>{
-            let mut values = [0.0; 5];
-            for (i, arg) in &mut args[1..6].iter().enumerate() {
-                values[i] = match arg.parse::<f64>() {
-                    Ok(value) => value,
-                    Err(error) => {
-                        panic!("\n\ncould not parse input as floats\n{error}\n\nPlease type 5 values (as floats) separated by a space in the following order\nv_ref vo_fs vo_zs vi_fs vi_zs.\n\n");
-                    }
-                };
+    let args = Cli::parse();
+    match &args.command {
+        Commands::Amp(amp_args) => {
+            let vref = amp_args.vref;
+            let vo_fs = amp_args.vo_fs;
+            let vo_zs = amp_args.vo_zs;
+            let vi_fs = amp_args.vi_fs;
+            let vi_zs = amp_args.vi_zs;
+
+            let circuit = AmplifierCircuit::calc(vref, vo_fs, vo_zs, vi_fs, vi_zs);
+            println!("\ncomponent values:\n{:?}", circuit);
+        }
+        Commands::Filter(filter_args) => {
+            let fc = filter_args.fc;
+            let order: u8;
+            match filter_args.order {
+                2 | 4 | 6 | 8 => {
+                    order = filter_args.order;
+                }
+                _ => panic!("invalid order"),
             }
-
-        let vref = values[0];
-        let vo_fs = values[1];
-        let vo_zs = values[2];
-        let vi_fs = values[3];
-        let vi_zs = values[4];
-
-        let circuit = AmplifierCircuit::calc(vref, vo_fs, vo_zs, vi_fs, vi_zs);
-        println!("\ncomponent values:\n{:?}", circuit);
-
-        },
-        _ => panic!("\n\nPlease type 5 values (as floats) separated by a space in the following order\nv_ref vo_fs vo_zs vi_fs vi_zs.\n\n to build an offset and scaling circuit\n\nOR\n\n\n\nPlease type 2 values separated by a space in the following order\ncutoff_frequency (hz, as float) order (2, 4, 6, or 8)"),
+            let q = AntiAliasingFilter::q_factors(order);
+            let filter = AntiAliasingFilter::component_values(q, fc, order);
+            println!("\nfilter values:\n{:?}", filter);
+        }
     }
-    if args.len() == 3 {}
 }
 
 #[test]

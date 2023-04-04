@@ -1,9 +1,13 @@
 [package]
 name = "circuit_calculator"
-version = "0.1.0"
+author = "Kevin Nel"
+version = "0.1.2"
+description = "a simple circuit calculator to help with making scaling and offset amplifiers and anti aliasing filters"
 edition = "2021"
 
+# from 'designing gain and offset in thirty seconds' - Application Report SLOA097 (Texas Instruments)
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7.3"
+clap = { version = "4.2.1", features = [ "derive" ]}
+
