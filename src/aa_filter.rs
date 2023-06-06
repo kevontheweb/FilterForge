@@ -7,11 +7,11 @@ pub enum AntiAliasingFilter {
     Butterworth {
         fc: f64,
         order: u8,
-        r2: f64,
-        c2: f64,
-        r1: f64,
-        c1: f64,
         q: f64,
+        r1: f64,
+        r2: f64,
+        c1: f64,
+        c2: f64,
     },
 }
 
@@ -46,6 +46,8 @@ impl AntiAliasingFilter {
             // calculations
             let mut n = (4.0f64 * q * q).round();
             let mut k = n / (2.0 * q * q) - 1.0;
+
+            // iterate until k = 1 for optimization
             while k <= 1.0 {
                 n += 0.1;
                 k = n / (2.0 * q * q) - 1.0;
@@ -67,11 +69,11 @@ impl AntiAliasingFilter {
             let filter = AntiAliasingFilter::Butterworth {
                 fc,
                 order,
-                r2,
-                c2,
-                r1,
-                c1,
                 q: *q,
+                r1,
+                r2,
+                c1,
+                c2,
             };
             filters.push(filter);
         }

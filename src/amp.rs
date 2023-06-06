@@ -1,4 +1,4 @@
-use crate::utils::get_user_input;
+use crate::utils::{get_closest_value, get_user_input};
 #[derive(Debug)]
 pub enum AmplifierCircuit {
     TopologyA {
@@ -52,6 +52,12 @@ impl AmplifierCircuit {
                 let r_f =
                     get_user_input("select r_f:\n(this may have been suggested by datasheet)");
                 let r_g = r_2 * r_f / (gain * (r_1 + r_2) - r_2);
+
+                let r_f = get_closest_value(r_f, 'r', 5);
+                let r_g = get_closest_value(r_g, 'r', 5);
+                let r_1 = get_closest_value(r_1, 'r', 5);
+                let r_2 = get_closest_value(r_2, 'r', 5);
+
                 AmplifierCircuit::TopologyA { r_1, r_2, r_f, r_g }
             }
             (false, true) => {
@@ -63,6 +69,13 @@ impl AmplifierCircuit {
                 let r_g1 = r_g - r_g2;
                 let vref_prime = offset.abs() * r_g1 / (r_g1 - r_f);
                 let r_1 = r_g2 * (vref - vref_prime) / vref_prime;
+
+                let r_f = get_closest_value(r_f, 'r', 5);
+                let r_g = get_closest_value(r_g, 'r', 5);
+                let r_g1 = get_closest_value(r_g1, 'r', 5);
+                let r_g2 = get_closest_value(r_g2, 'r', 5);
+                let r_1 = get_closest_value(r_1, 'r', 5);
+
                 AmplifierCircuit::TopologyB {
                     r_f,
                     r_g,
@@ -79,12 +92,22 @@ impl AmplifierCircuit {
                 let r_g = r_f / gain.abs();
                 let r_2 = get_user_input("select r_2:\n(same order of magnitude as r_f)");
                 let r_1 = (offset * r_2 * r_g) / ((vref * (r_f + r_g)) - (offset * r_g));
+
+                let r_g = get_closest_value(r_g, 'r', 5);
+                let r_2 = get_closest_value(r_2, 'r', 5);
+                let r_1 = get_closest_value(r_1, 'r', 5);
+
                 AmplifierCircuit::TopologyC { r_f, r_g, r_2, r_1 }
             }
             (true, true) => {
                 let r_f = get_user_input("select r_f:\nselect r_f:\n");
                 let r_g1 = r_f / gain.abs();
                 let r_g2 = vref * (r_f / offset.abs());
+
+                let r_f = get_closest_value(r_f, 'r', 5);
+                let r_g1 = get_closest_value(r_g1, 'r', 5);
+                let r_g2 = get_closest_value(r_g2, 'r', 5);
+
                 AmplifierCircuit::TopologyD { r_f, r_g1, r_g2 }
             }
         }

@@ -1,2 +1,5 @@
 /target
 /.vscode
+/circuits/*/*-backups/
+/circuits/*/*.prl
+/circuits/*/*.wbk

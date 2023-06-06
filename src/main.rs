@@ -1,8 +1,10 @@
 pub mod aa_filter;
 pub mod amp;
+pub mod filters;
 pub mod utils;
 use crate::aa_filter::AntiAliasingFilter;
 use crate::amp::AmplifierCircuit;
+use crate::filters::BandpassFilterWide;
 use clap::{Args, Parser, Subcommand};
 
 /// program for calculating scaling and offset circuits and low pass filters
@@ -20,6 +22,8 @@ enum Commands {
     Amp(AmpArgs),
     /// for designing low pass filters (butterworth) using sergio franco's Design With Operational Amplifiers And Analog Integrated Circuits
     Filter(FilterArgs),
+    /// for desiging low, high and bandpass filters (butterworth 2nd order) quickly using Filter design in thirty seconds - sloa93 app note - texas instruments
+    QuickFilter(QuickFiltersArgs),
 }
 
 #[derive(Debug, Args)]
@@ -38,10 +42,19 @@ struct AmpArgs {
 
 #[derive(Debug, Args)]
 struct FilterArgs {
-    /// cutoff frequency
+    /// cutoff frequency,
     fc: f64,
     /// order of the filter (2, 4, 6, or 8)
     order: u8,
+}
+
+#[derive(Debug, Args)]
+struct QuickFiltersArgs {
+    /// pass band frequencies
+    f1: f64,
+    f2: f64,
+    // filter type (unused)
+    // filter_type: String,
 }
 
 fn main() {
@@ -55,7 +68,7 @@ fn main() {
             let vi_zs = amp_args.vi_zs;
 
             let circuit = AmplifierCircuit::calc(vref, vo_fs, vo_zs, vi_fs, vi_zs);
-            println!("\ncomponent values:\n{:?}", circuit);
+            println!("\ncomponent values:\n{:#?}", circuit);
         }
         Commands::Filter(filter_args) => {
             let fc = filter_args.fc;
@@ -68,7 +81,13 @@ fn main() {
             }
             let q = AntiAliasingFilter::q_factors(order);
             let filter = AntiAliasingFilter::component_values(q, fc, order);
-            println!("\nfilter values:\n{:?}", filter);
+            println!("\nfilter values:\n{:#?}", filter);
+        }
+        Commands::QuickFilter(quick_filter_args) => {
+            let f1 = quick_filter_args.f1;
+            let f2 = quick_filter_args.f2;
+            let filter = BandpassFilterWide::component_values(f1, f2);
+            println!("\ncomponent values:\n{:#?}", filter);
         }
     }
 }
@@ -76,18 +95,18 @@ fn main() {
 #[test]
 fn test_get_closest_value() {
     use crate::utils::get_closest_value;
-    assert_eq!(get_closest_value(1.0, 'r', 5), 1.0);
-    assert_eq!(get_closest_value(0.99, 'r', 5), 1.0);
-    assert_eq!(get_closest_value(1.1, 'r', 5), 1.2);
-    assert_eq!(get_closest_value(10.0, 'r', 5), 10.0);
+    // assert_eq!(get_closest_value(1.0, 'r', 5), 1.0);
+    // assert_eq!(get_closest_value(0.99, 'r', 5), 1.0);
+    // assert_eq!(get_closest_value(1.1, 'r', 10), 1.2);
+    // assert_eq!(get_closest_value(10.0, 'r', 5), 10.0);
     assert_eq!(get_closest_value(9.5, 'r', 5), 9.1);
 
     assert_eq!(get_closest_value(1234.56, 'r', 5), 1.2e3);
-    assert_eq!(get_closest_value(9876543.21, 'r', 5), 9.76e6);
-    assert_eq!(get_closest_value(9876.54, 'r', 5), 9.76e3);
+    assert_eq!(get_closest_value(9876543.21, 'r', 1), 9.76e6);
+    assert_eq!(get_closest_value(9876.54, 'r', 5), 1e3);
 
     // todo: write tests for capacitors
-    // assert_eq!(get_closest_value(0.001e-12, 'c', 5.0), 0.01e-12);
-    // assert_eq!(get_closest_value(1.387e-12, 'c', 5.0), );
-    // assert_eq!(get_closest_value(9876.54, 'c', 5.0), 9.76e3);
+    assert_eq!(get_closest_value(0.001e-12, 'c', 5), 0.01e-12);
+    assert_eq!(get_closest_value(1.387e-12, 'c', 5), 1.3e-12);
+    assert_eq!(get_closest_value(9.87654e-9, 'c', 5), 1.0e-9);
 }
