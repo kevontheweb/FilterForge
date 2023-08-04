@@ -1,4 +1,6 @@
-# scaling and offset circuit, and active lowpass filter calculator
+# FilterForge
+
+A scaling and offset circuit, and active lowpass filter calculator.
 
 This program generates component values for a scaling and offset circuit using 'designing gain and offset in thirty seconds' - Application Report SLOA097 (Texas Instruments)
 It also currently can design butterworth low pass filters with orders 2, 4, 6, and 8. based on the unity gain KRC circuit in 'Design with Operational Amplifiers' - S. Franco
