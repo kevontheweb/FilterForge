@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+gnuplot plot.gp
+cat header.tex plt.tex >> tmp.tex
+echo "\end{document}" >> tmp.tex
+pdflatex tmp.tex
+pdfcrop tmp.pdf --margins '5 5 5 5'
+mv tmp-crop.pdf plot.pdf
+rm *.aux *.log *.eps *converted-to.pdf tmp.tex tmp.pdf
+

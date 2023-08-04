@@ -16,10 +16,9 @@ That is mostly an issue about writing idiomatic (or 'rusty') rust code, which ho
 ## todo
 
 - [x] refactor and move aa filter and scaling circuits out to separate libs
-
 - [ ] add support for chebychev filters
+- [ ] add support for highpass and bandpass filters
 - [x] standard component suggestions
-  - [ ] improve output to show both ideal and standard
   - [x] find closest standard component value
 - [ ] spice netlist output
   - [ ] make generic spice netlist for the amplifier topologies
@@ -28,8 +27,12 @@ That is mostly an issue about writing idiomatic (or 'rusty') rust code, which ho
   - [x] commands
     - [x] `filter` (takes in cutoff frequency and order)
       - [ ] `--butterworth`, `--chebychev`
-      - [ ] `--std` for standard component out (currently does this by default)
+      - [ ] `--std` for standard component out (currently **does** this by default)
     - [x] `amp` (takes in voltages, reference, output full scale, output zero scale, input full scale, input zero scale)
-      - [ ] `--std` for standard component out (currently does not do this by default)
+      - [ ] `--std` for standard component out (currently **does not** do this by default)
     - [ ] `--spice` (output netlist to stdout, with simulation directives, maybe suggest ngspice command to plot freq response)
     - [ ] `--help`
+  - [ ] output
+    - [x] fix messed up order of values in output
+    - [ ] implement format traits for output so that it can pretty print as json
+    - [ ] improve output to show both ideal and standard
