@@ -1387,11 +1387,11 @@
     (property "Sim.Pins" "1=1 2=2 3=5 4=3 5=4" (at 153.67 74.93 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 4e3ea85a-b4e6-4c4c-ad95-9aedac1dbbba))
-    (pin "2" (uuid f1ce0ea9-0853-41e1-ad22-9c42c905c265))
-    (pin "3" (uuid 6426b2c5-e571-4499-8f72-630802a46f97))
-    (pin "4" (uuid d50f6947-39c9-45ca-8db6-be9bacbd7b93))
-    (pin "5" (uuid e2542453-2a71-477c-a420-17eec2900841))
+    (pin "1" (uuid fe71dab9-e3dc-4161-af15-8ff445fe46e4))
+    (pin "2" (uuid 503bbc9b-c2f3-4857-b47b-e6c9a135dbfe))
+    (pin "3" (uuid 529a82b6-77db-451d-81b1-d4d3fc614f31))
+    (pin "4" (uuid 5175300d-070f-4c5d-9c7b-4ccc691910be))
+    (pin "5" (uuid 8ff4855b-2740-4aad-9097-a813afc29171))
     (instances
       (project "lpf"
         (path "/0a1acb0c-7c0a-4eb4-97c7-af288804dd23"

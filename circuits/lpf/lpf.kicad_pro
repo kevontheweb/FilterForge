@@ -317,7 +317,7 @@
       "meta": {
         "version": 0
       },
-      "model_mode": 0,
+      "model_mode": 4,
       "workbook_filename": "lpf.wbk"
     },
     "page_layout_descr_file": "",
