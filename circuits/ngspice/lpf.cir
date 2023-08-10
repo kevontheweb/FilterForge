@@ -27,6 +27,7 @@ ac dec 100k 10 100Meg
 * plot outd xlimit 1 100Meg ylabel 'phase (degrees)'
 wrdata vdb_data vdb(v_out)
 wrdata vp_data vp(v_out)
+quit
 .endc
 
 .end
